@@ -18,6 +18,7 @@
   button.primary { background:#e11d48; color:#fff; border-color:#e11d48; box-shadow:0 0 0 6px #ffe4e9; }
   .badge { position:absolute; top:-10px; right:-10px; background:#ffd700; color:#000; font-weight:900; padding:4px 14px; border-radius:9999px; font-size:14px; display:none; }
   .slider { display:flex; align-items:center; gap:8px; font-size:14px; }
+  .fs-close { position:fixed; top:20px; right:20px; z-index:10000; font-size:18px; padding:8px 16px; background:#111; color:#fff; border-radius:9999px; display:none; }
 </style>
 </head>
 <body>
@@ -55,14 +56,18 @@
   <div id="badge" class="badge">🏅 金牌</div>
 </div>
 
+<button id="fsClose" class="fs-close" onclick="exitCustomFullscreen()">✕ 返回</button>
+
 <script>
 // Live preview
 const codeEl = document.getElementById('code');
 const preview = document.getElementById('preview');
 const badge = document.getElementById('badge');
+const fsClose = document.getElementById('fsClose');
 let history = [];
 let soundOn = true;
 let contrastOn = false;
+let customFS = false;
 
 function updatePreview() {
   const html = codeEl.value;
@@ -126,19 +131,29 @@ function toggleContrast() {
   showToast(contrastOn ? '高對比模式' : '正常模式');
 }
 function togglePreviewFullscreen() {
-  if (!document.fullscreenElement) {
-    preview.requestFullscreen().catch(() => {
-      // fallback: expand iframe
-      preview.style.position = 'fixed';
-      preview.style.top = '0';
-      preview.style.left = '0';
-      preview.style.width = '100vw';
-      preview.style.height = '100vh';
-      preview.style.zIndex = '9999';
-    });
+  if (!customFS) {
+    // custom fullscreen for SEN (easy exit)
+    preview.style.position = 'fixed';
+    preview.style.top = '0';
+    preview.style.left = '0';
+    preview.style.width = '100vw';
+    preview.style.height = '100vh';
+    preview.style.zIndex = '9999';
+    fsClose.style.display = 'block';
+    customFS = true;
   } else {
-    document.exitFullscreen();
+    exitCustomFullscreen();
   }
+}
+function exitCustomFullscreen() {
+  preview.style.position = '';
+  preview.style.top = '';
+  preview.style.left = '';
+  preview.style.width = '';
+  preview.style.height = '';
+  preview.style.zIndex = '';
+  fsClose.style.display = 'none';
+  customFS = false;
 }
 
 // Keyboard sync (Ctrl+S)
@@ -146,6 +161,9 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 's') {
     e.preventDefault();
     download();
+  }
+  if (e.key === 'Escape' && customFS) {
+    exitCustomFullscreen();
   }
 });
 
