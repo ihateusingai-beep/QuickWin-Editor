@@ -19,6 +19,8 @@
   .badge { position:absolute; top:-10px; right:-10px; background:#ffd700; color:#000; font-weight:900; padding:4px 14px; border-radius:9999px; font-size:14px; display:none; }
   .slider { display:flex; align-items:center; gap:8px; font-size:14px; }
   .fs-close { position:fixed; top:20px; right:20px; z-index:10000; font-size:18px; padding:8px 16px; background:#111; color:#fff; border-radius:9999px; display:none; }
+  .flash { animation: flashBtn 0.4s ease; }
+  @keyframes flashBtn { 0%{box-shadow:0 0 0 8px #ffd700;} 100%{box-shadow:none;} }
 </style>
 </head>
 <body>
@@ -48,11 +50,11 @@
     <input type="range" id="fontSize" min="14" max="32" value="18">
     <span id="fontVal">18px</span>
   </div>
-  <button onclick="clearCode()">🗑️ 清空</button>
-  <button onclick="undo()">↩️ 復原</button>
-  <button class="primary" onclick="download()">💾 下載 (Ctrl+S)</button>
-  <button onclick="toggleSound()">🔊</button>
-  <button onclick="toggleContrast()">🌓</button>
+  <button id="btnUndo" onclick="clearCode()">🗑️ 清空</button>
+  <button id="btnRedo" onclick="undo()">↩️ 復原</button>
+  <button id="btnDownload" class="primary" onclick="download()">💾 下載 (Ctrl+S)</button>
+  <button id="btnSound" onclick="toggleSound()">🔊</button>
+  <button id="btnContrast" onclick="toggleContrast()">🌓</button>
   <div id="badge" class="badge">🏅 金牌</div>
 </div>
 
@@ -69,11 +71,19 @@ let soundOn = true;
 let contrastOn = false;
 let customFS = false;
 
+function flashButton(id, msg) {
+  const btn = document.getElementById(id);
+  if (btn) {
+    btn.classList.add('flash');
+    setTimeout(() => btn.classList.remove('flash'), 400);
+  }
+  if (msg) showToast(msg);
+}
+
 function updatePreview() {
   const html = codeEl.value;
   preview.srcdoc = `<!DOCTYPE html><html><body style="margin:40px;font-family:sans-serif;font-size:2em">${html}</body></html>`;
   
-  // Auto badge trigger (robust color detection)
   if (/color\s*:\s*(blue|green|purple|orange|pink)/i.test(html)) {
     badge.style.display = 'block';
     if (soundOn) new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=').play().catch(()=>{});
@@ -86,7 +96,6 @@ codeEl.addEventListener('input', () => {
   updatePreview();
 });
 
-// Font size slider (SEN)
 const fontSlider = document.getElementById('fontSize');
 const fontVal = document.getElementById('fontVal');
 fontSlider.oninput = () => {
@@ -94,7 +103,6 @@ fontSlider.oninput = () => {
   fontVal.textContent = fontSlider.value + 'px';
 };
 
-// Buttons
 function clearCode() {
   history.push(codeEl.value);
   codeEl.value = '';
@@ -132,7 +140,6 @@ function toggleContrast() {
 }
 function togglePreviewFullscreen() {
   if (!customFS) {
-    // custom fullscreen for SEN (easy exit)
     preview.style.position = 'fixed';
     preview.style.top = '0';
     preview.style.left = '0';
@@ -156,11 +163,32 @@ function exitCustomFullscreen() {
   customFS = false;
 }
 
-// Keyboard sync (Ctrl+S)
+// === 5 個快捷鍵 + 鼓勵反饋 ===
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === 's') {
+  if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    undo();
+    flashButton('btnRedo', '好！Ctrl+Z 救返你啦 💪');
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === 's') {
     e.preventDefault();
     download();
+    flashButton('btnDownload', '勁！Ctrl+S = 保存成功 ✨');
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+    flashButton('btnUndo', 'Ctrl+C 已複製！繼續加油');
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+    flashButton('btnUndo', 'Ctrl+V 已貼上！好叻！');
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+    // 提示下一步 Delete
+    flashButton('btnUndo', '全選咗！再按 Delete 清空');
+  }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (document.activeElement === codeEl) {
+      flashButton('btnUndo', '清空技巧學會啦！👍');
+    }
   }
   if (e.key === 'Escape' && customFS) {
     exitCustomFullscreen();
@@ -171,7 +199,6 @@ document.addEventListener('keydown', e => {
 codeEl.value = '<h1 style="color:red">Hello</h1>';
 updatePreview();
 setTimeout(() => {
-  // Highlight hint for SEN
   codeEl.style.background = '#fffbeb';
 }, 800);
 </script>
